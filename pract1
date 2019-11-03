@@ -1,184 +1,223 @@
 #include <iostream>
-#include <vector>
 #include <set>
-#include <algorithm>
 #include <string>
 #include <stack>
 #include <stdexcept>
-#include <unordered_set>
 #include <fstream>
+#include <cassert>
+
+void raise() {
+    throw "Incorrect input";
+}
 
 class Regexp {
 private:
-	struct container;
-	std::string expression;
-	int size;
-	void is_correct();
+    struct container;
+    std::string expression;
+    int size;
+    void is_correct();
 public:
-	Regexp();
-	Regexp(const std::string& pattern);
-	void get(std::istream& in);
-	int task13(const std::string& word);
-	friend std::istream& operator >>(std::istream& in, Regexp& regexp);
+    Regexp();
+    Regexp(const std::string& pattern);
+    void get(std::istream& in);
+    int task13(const std::string& word);
+    friend std::istream& operator >>(std::istream& in, Regexp& regexp);
 };
 
 std::istream& operator >>(std::istream& in, Regexp& regexp) {
-	in >> regexp.expression;
-	return in;
+    in >> regexp.expression;
+    regexp.size = regexp.expression.size();
+    return in;
 }
 
 Regexp::Regexp() {}
 
 Regexp::Regexp(const std::string& pattern) {
-	expression = pattern;
-	size = expression.size();
+    expression = pattern;
+    size = expression.size();
 }
 
 void Regexp::get(std::istream& in) {
-	in >> expression;
-	size = expression.size();
-	is_correct();
+    in >> expression;
+    size = expression.size();
 }
 
 void Regexp::is_correct() {
-	int counter = 0;
-	for (int i = 0; i < size; ++i) {
-		if (expression[i] == '.' || expression[i] == '+') {
-			if (counter < 2)
-				throw std::invalid_argument("Incorrect form of regular expression");
-			--counter;
-		}
-		else if (expression[i] == '*') {
-			if (counter == 0)
-				throw std::invalid_argument("Incorrect form of regular expression");
-		}
-		else if (expression[i] != '1' && (expression[i] < 'a' || expression[i] > 'c')) {
-			throw std::invalid_argument("Incorrect symbol is in regular expression");
-		}
-		else {
-			++counter;
-		}
-	}
-	if (counter != 1)
-		throw std::invalid_argument("Incorrect form of regular expression");
+    int counter = 0;
+    for (int i = 0; i < size; ++i) {
+        if (expression[i] == '.' || expression[i] == '+') {
+            if (counter < 2)
+                raise();
+            --counter;
+        }
+        else if (expression[i] == '*') {
+            if (counter == 0)
+                raise();
+        }
+        else if (expression[i] != '1' && (expression[i] < 'a' || expression[i] > 'c')) {
+            raise();
+        }
+        else {
+            ++counter;
+        }
+    }
+    if (counter != 1)
+        raise();
 }
 
 struct Regexp::container {
-	std::set<std::pair<int, int>> subwords;
-	int word_size;
-	container(int n) : word_size(n) {}
-	void emp_fill() {
-		for (int i = 0; i < word_size; ++i) {
-			subwords.insert({ i, i });
-		}
-	}
-	container(char symb, const std::string& pattern) : word_size(pattern.size()) {
-		if (symb == '1') {
-			emp_fill();
-		}
-		else {
-			for (int i = 0; i < pattern.size(); ++i) {
-				if (pattern[i] == symb)
-					subwords.insert({ i, i + 1 });
-			}
-		}
-	}
-	static container* add_merge(container* f_cont, container* s_cont) {
-		for (auto it = s_cont->subwords.begin(); it != s_cont->subwords.end(); ++it) {
-			f_cont->subwords.insert(*it);
-		}
-		if (s_cont != nullptr)
-			delete s_cont;
-		return f_cont;
-	}
-	static container* mult_merge(container* f_cont, container* s_cont) {
-		container* cur = new container(f_cont->word_size);
-		for (auto f_it = f_cont->subwords.begin(); f_it != f_cont->subwords.end(); ++f_it) {
-			for (auto s_it = s_cont->subwords.begin(); s_it != s_cont->subwords.end(); ++s_it) {
-				if ((*f_it).second == (*s_it).first) {
-					cur->subwords.insert({ (*f_it).first, (*s_it).second });
-				}
-			}
-		}
-		if (f_cont != nullptr)
-			delete f_cont;
-		if (s_cont != f_cont)
-			delete s_cont;
-		return cur;
-	}
-	static container* deg_merge(container* cont) {
-		cont->emp_fill();
-		int prev_size = cont->subwords.size();
-		cont = mult_merge(cont, cont);
-		int new_size = cont->subwords.size();
-		while (prev_size != new_size) {
-			prev_size = new_size;
-			cont = mult_merge(cont, cont);
-			new_size = cont->subwords.size();
-		}
-		return cont;
-	}
+    std::set<std::pair<int, int>> subwords;
+    int word_size;
+    container(int n) : word_size(n) {}
+    void emp_fill() {
+        for (int i = 0; i < word_size; ++i) {
+            subwords.insert({ i, i });
+        }
+    }
+    container(char symb, const std::string& pattern) : word_size(pattern.size()) {
+        if (symb == '1') {
+            emp_fill();
+        }
+        else {
+            for (int i = 0; i < pattern.size(); ++i) {
+                if (pattern[i] == symb)
+                    subwords.insert({ i, i + 1 });
+            }
+        }
+    }
+    static container* add_merge(container* f_cont, container* s_cont) {
+        for (auto it = s_cont->subwords.begin(); it != s_cont->subwords.end(); ++it) {
+            f_cont->subwords.insert(*it);
+        }
+        if (s_cont != nullptr)
+            delete s_cont;
+        return f_cont;
+    }
+    static container* mult_merge(container* f_cont, container* s_cont) {
+        container* cur = new container(f_cont->word_size);
+        for (auto f_it = f_cont->subwords.begin(); f_it != f_cont->subwords.end(); ++f_it) {
+            for (auto s_it = s_cont->subwords.begin(); s_it != s_cont->subwords.end(); ++s_it) {
+                if ((*f_it).second == (*s_it).first) {
+                    cur->subwords.insert({ (*f_it).first, (*s_it).second });
+                }
+            }
+        }
+        if (f_cont != nullptr)
+            delete f_cont;
+        if (s_cont != f_cont)
+            delete s_cont;
+        return cur;
+    }
+    static container* deg_merge(container* cont) {
+        cont->emp_fill();
+        int prev_size = cont->subwords.size();
+        cont = mult_merge(cont, cont);
+        int new_size = cont->subwords.size();
+        while (prev_size != new_size) {
+            prev_size = new_size;
+            cont = mult_merge(cont, cont);
+            new_size = cont->subwords.size();
+        }
+        return cont;
+    }
 };
 
 int Regexp::task13(const std::string& word) {
-	for (int i = 0; i < word.size(); ++i) {
-		if (word[i] < 'a' || word[i] > 'c')
-			throw std::invalid_argument("Incorrect symbol is in word");
-	}
-	std::stack<container*> stack;
-	for (int i = 0; i < size; ++i) {
-		if (expression[i] == '.') {
-			container* s_cont = stack.top();
-			stack.pop();
-			container* f_cont = stack.top();
-			stack.pop();
-			stack.push(container::mult_merge(f_cont, s_cont));
-		}
-		else if (expression[i] == '+') {
-			container* s_cont = stack.top();
-			stack.pop();
-			container* f_cont = stack.top();
-			stack.pop();
-			stack.push(container::add_merge(f_cont, s_cont));
-		}
-		else if (expression[i] == '*') {
-			container* cont = stack.top();
-			stack.pop();
-			stack.push(container::deg_merge(cont));
-		}
-		else {
-			container* new_cont = new container(expression[i], word);
-			stack.push(new_cont);
-		}
-	}
-	container* cont = stack.top();
-	stack.pop();
-	int ans = -1;
-	for (auto it = cont->subwords.begin(); it != cont->subwords.end(); ++it) {
-		if ((*it).second - (*it).first > ans)
-			ans = (*it).second - (*it).first;
-	}
-	return ans;
+    is_correct();
+    for (int i = 0; i < word.size(); ++i) {
+        if (word[i] < 'a' || word[i] > 'c')
+            raise();
+    }
+    std::stack<container*> stack;
+    for (int i = 0; i < size; ++i) {
+        if (expression[i] == '.') {
+            container* s_cont = stack.top();
+            stack.pop();
+            container* f_cont = stack.top();
+            stack.pop();
+            stack.push(container::mult_merge(f_cont, s_cont));
+        }
+        else if (expression[i] == '+') {
+            container* s_cont = stack.top();
+            stack.pop();
+            container* f_cont = stack.top();
+            stack.pop();
+            stack.push(container::add_merge(f_cont, s_cont));
+        }
+        else if (expression[i] == '*') {
+            container* cont = stack.top();
+            stack.pop();
+            stack.push(container::deg_merge(cont));
+        }
+        else {
+            container* new_cont = new container(expression[i], word);
+            stack.push(new_cont);
+        }
+    }
+    container* cont = stack.top();
+    stack.pop();
+    int ans = -1;
+    for (auto it = cont->subwords.begin(); it != cont->subwords.end(); ++it) {
+        if ((*it).second - (*it).first > ans)
+            ans = (*it).second - (*it).first;
+    }
+    return ans;
 }
 
-int main(int argc, char* argv[]) {
-	if (argc > 1 && argv[1] == "test") {
-		std::ifstream fin("test.txt");
-		std::ofstream fout("output.txt");
-		Regexp exp;
-		std::string s;
-		while (fin >> exp >> s) {
-			fout << exp.task13(s) << "\n\n-----\n\n";
-			fin >> s;
-		}
 
-	}
-	else {
-		Regexp exp;
-		exp.get(std::cin);
-		std::string s;
-		std::cin >> s;
-		std::cout << exp.task13(s) << "\n";
-	}
-	return 0;
+
+int main(int argc, char* argv[]) {
+    if (argc > 1) {
+        std::ifstream fin("tests.txt");
+        std::ofstream fout("output.txt");
+        Regexp exp;
+        std::string s;
+        int counter = 0, correct_counter = 0;
+        while (fin >> s) {
+            int out, corr_out;
+            fin >> exp >> s;
+            try {
+                out = exp.task13(s);
+            }
+            catch(const char* exception) {
+                out = -2;
+            }
+            fin >> corr_out;
+            if (out == corr_out) {
+                ++correct_counter;
+                fout << "Test " << counter + 1 << ": correct\n  Expected: ";
+                if (corr_out == -2)
+                    fout << "Error";
+                else
+                    fout << corr_out;
+                fout << "\n  Received: ";
+                if (out == -2)
+                    fout << "Error";
+                else
+                    fout << out;
+            }
+            else {
+                fout << "Test " << counter + 1 << ": correct\n  Expected: ";
+                if (corr_out == -2)
+                    fout << "Error";
+                else
+                    fout << corr_out;
+                fout << "\n  Received: ";
+                if (out == -2)
+                    fout << "Error";
+                else
+                    fout << out;
+            }
+            fout << "\n\n";
+            ++counter;
+        }
+        std::cout << correct_counter << '/' << counter << " tests passed\n";
+    }
+    else {
+        Regexp exp;
+        std::string s;
+        std::cin >> exp >> s;
+        std::cout << exp.task13(s) << "\n";
+    }
+    return 0;
 }
