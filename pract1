@@ -2,10 +2,7 @@
 #include <set>
 #include <string>
 #include <stack>
-#include <stdexcept>
 #include <fstream>
-#include <cassert>
-#include <map>c
 #include <algorithm>
 #include <unordered_set>
 
@@ -109,6 +106,8 @@ Regexp::NFA* Regexp::NFA::add_merge(NFA* n1, NFA* n2) {
 		new_node->go.insert(*it);
 	}
 	NFA* n3 = new NFA(new_node);
+	if (new_node->is_term)
+	    n3->term.insert(new_node);
 	for (auto it = n1->term.begin(); it != n1->term.end(); ++it)
 		n3->term.insert(*it);
 	for (auto it = n2->term.begin(); it != n2->term.end(); ++it)
@@ -233,23 +232,57 @@ int Regexp::size_of_max_subword(const std::string& word) {
 }
 
 int main(int argc, char* argv[]) {
-	if (argc > 1 && argv[1] == "test") {
-		std::ifstream fin("test.txt");
-		std::ofstream fout("output.txt");
-		Regexp exp;
-		std::string s;
-		while (fin >> exp >> s) {
-			fout << exp.task13(s) << "\n\n-----\n\n";
-			fin >> s;
-		}
-
-	}
-	else {
-		Regexp exp;
-		exp.get(std::cin);
-		std::string s;
-		std::cin >> s;
-		std::cout << exp.task13(s) << "\n";
-	}
-	return 0;
+    if (argc > 1) {
+        std::ifstream fin("tests.txt");
+        std::ofstream fout("output.txt");
+        Regexp exp;
+        std::string s;
+        int counter = 0, correct_counter = 0;
+        while (fin >> s) {
+            int out, corr_out;
+            fin >> exp >> s;
+            try {
+                out = exp.size_of_max_subword(s);
+            }
+            catch(const char* exception) {
+                out = -2;
+            }
+            fin >> corr_out;
+            if (out == corr_out) {
+                ++correct_counter;
+                fout << "Test " << counter + 1 << ": correct\n  Expected: ";
+                if (corr_out == -2)
+                    fout << "Error";
+                else
+                    fout << corr_out;
+                fout << "\n  Received: ";
+                if (out == -2)
+                    fout << "Error";
+                else
+                    fout << out;
+            }
+            else {
+                fout << "Test " << counter + 1 << ": correct\n  Expected: ";
+                if (corr_out == -2)
+                    fout << "Error";
+                else
+                    fout << corr_out;
+                fout << "\n  Received: ";
+                if (out == -2)
+                    fout << "Error";
+                else
+                    fout << out;
+            }
+            fout << "\n\n";
+            ++counter;
+        }
+        std::cout << correct_counter << '/' << counter << " tests passed\n";
+    }
+    else {
+        Regexp exp;
+        std::string s;
+        std::cin >> exp >> s;
+        std::cout << exp.size_of_max_subword(s) << "\n";
+    }
+    return 0;
 }
