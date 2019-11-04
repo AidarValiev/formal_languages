@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <unordered_set>
 
+// throws exception when input is incorrect
 void raise() {
 	throw "Incorrect input";
 }
@@ -36,11 +37,13 @@ std::istream& operator >>(std::istream& in, Regexp& regexp) {
 	return in;
 }
 
+// methods that getting regular expression from stream
 void Regexp::get(std::istream& in) {
 	in >> expression;
 	size = expression.size();
 }
 
+// checks if regular expression is in correct form
 void Regexp::is_correct() {
 	int counter = 0;
 	for (int i = 0; i < size; ++i) {
@@ -97,6 +100,7 @@ struct Regexp::NFA {
 	void destr();
 };
 
+// applies disjunction to pair of NFAs
 Regexp::NFA* Regexp::NFA::add_merge(NFA* n1, NFA* n2) {
 	node* new_node = new node(n1->root->is_term || n2->root->is_term);
 	for (auto it = n1->root->go.begin(); it != n1->root->go.end(); ++it) {
@@ -122,6 +126,7 @@ Regexp::NFA* Regexp::NFA::add_merge(NFA* n1, NFA* n2) {
 	return n3;
 }
 
+// applies concatenation to pair of NFAs
 Regexp::NFA* Regexp::NFA::mult_merge(NFA* n1, NFA* n2) {
 	NFA* n3 = new NFA(n1->root);
 	for (auto it = n1->term.begin(); it != n1->term.end(); ++it) {
@@ -145,6 +150,7 @@ Regexp::NFA* Regexp::NFA::mult_merge(NFA* n1, NFA* n2) {
 	return n3;
 }
 
+//  applies closure to NFA
 Regexp::NFA* Regexp::NFA::deg_merge(NFA* nfa) {
 	for (auto it = nfa->term.begin(); it != nfa->term.end(); ++it) {
 		if (*it != nfa->root) {
@@ -158,6 +164,7 @@ Regexp::NFA* Regexp::NFA::deg_merge(NFA* nfa) {
 	return nfa;
 }
 
+// finds size of maximal prefix of word that belongs to regular language
 int Regexp::NFA::size_of_max_pref(const std::string& word) {
 	std::set<node*> current_set;
 	current_set.insert(root);
@@ -183,12 +190,14 @@ int Regexp::NFA::size_of_max_pref(const std::string& word) {
 	return ans;
 }
 
+// deletes all nodes from NFA
 void Regexp::NFA::destr() {
 	for (auto it = nodes.begin(); it != nodes.end(); ++it) {
 		delete (*it);
 	}
 }
 
+//  finds size of maximal subword that belongs to regular language
 int Regexp::size_of_max_subword(const std::string& word) {
 	is_correct();
 	for (int i = 0; i < word.size(); ++i) {
@@ -232,7 +241,7 @@ int Regexp::size_of_max_subword(const std::string& word) {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc > 1) {
+    if (argc > 1 && argv[1][0] == '-' && argv[1][1] == 't') {   //  checks if objective are tests
         std::ifstream fin("tests.txt");
         std::ofstream fout("output.txt");
         Regexp exp;
